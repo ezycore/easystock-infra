@@ -1,0 +1,43 @@
+# Caddy reverse proxy — HTTPS front door for the whole EasyStock stack.
+# One Caddy instance serves all 8 subdomains (staging + production) and gets
+# free Let's Encrypt certs automatically. Upstreams are app *container names*
+# on the shared `edge` Docker network (see infra/docker-compose.yml + §10).
+#
+# Certs are obtained PROACTIVELY at startup for every host below. The app
+# containers don't exist until §10, so each host returns HTTPS 502 until then —
+# that's expected. Verify §9 with:  curl -I https://rc-mc-api.ezycore.com
+
+{
+    email rashidul.karim7@gmail.com    # ACME account email (Let's Encrypt expiry notices). Change if you like.
+}
+
+# ---------- PRODUCTION ----------
+app.ezycore.com {
+    reverse_proxy frontend-prod:3000
+}
+api.ezycore.com {
+    reverse_proxy backend-prod:5000
+}
+mc.ezycore.com {
+    reverse_proxy mc-admin-prod:4000
+}
+mc-api.ezycore.com {
+    reverse_proxy mc-api-prod:6000
+}
+
+# ---------- STAGING ----------
+rc.ezycore.com {
+    reverse_proxy frontend-staging:3000
+}
+rc-api.ezycore.com {
+    reverse_proxy backend-staging:5000
+}
+rc-mc.ezycore.com {
+    reverse_proxy mc-admin-staging:4000
+}
+rc-mc-api.ezycore.com {
+    reverse_proxy mc-api-staging:6000
+}
+
+# NOTE: apex ezycore.com is not added yet — it has no DNS A record. Add a block
+# here (reverse_proxy frontend-prod:3000) once you point the apex at the server.

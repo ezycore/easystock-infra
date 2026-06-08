@@ -1,0 +1,9 @@
+# Secrets live ONLY on the server, never in git.
+**/.env
+**/.env.*
+.env
+.env.*
+
+# OS / editor cruft
+.DS_Store
+*.swp
