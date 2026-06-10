@@ -1,17 +1,23 @@
 # Caddy reverse proxy — HTTPS front door for the whole EasyStock stack.
-# One Caddy instance serves all 8 subdomains (staging + production) and gets
-# free Let's Encrypt certs automatically. Upstreams are app *container names*
-# on the shared `edge` Docker network (see infra/docker-compose.yml + §10).
+# One Caddy instance serves the apex, every staging/production host, and the
+# *.ezycore.com workspace wildcard. Upstreams are app *container names* on the
+# shared `edge` Docker network (see infra/docker-compose.yml + §10).
 #
-# Certs are obtained PROACTIVELY at startup for every host below. The app
-# containers don't exist until §10, so each host returns HTTPS 502 until then —
-# that's expected. Verify §9 with:  curl -I https://rc-mc-api.ezycore.com
+# Most certs come from Let's Encrypt automatically (HTTP-01). The *.ezycore.com
+# wildcard uses a DNS-01 challenge via the Cloudflare plugin (needs a custom
+# Caddy image + CLOUDFLARE_API_TOKEN — see Dockerfile + docker-compose.yml).
+# Concrete-host certs are obtained at startup; until the app containers exist
+# each returns HTTPS 502 — expected. Verify: curl -I https://rc-mc-api.ezycore.com
 
 {
     email rashidul.karim7@gmail.com    # ACME account email (Let's Encrypt expiry notices). Change if you like.
 }
 
 # ---------- PRODUCTION ----------
+# Apex + www → landing / signup / login (same frontend container as workspaces).
+ezycore.com, www.ezycore.com {
+    reverse_proxy frontend-prod:3000
+}
 app.ezycore.com {
     reverse_proxy frontend-prod:3000
 }
@@ -23,6 +29,16 @@ mc.ezycore.com {
 }
 mc-api.ezycore.com {
     reverse_proxy mc-api-prod:6000
+}
+
+# Every workspace subdomain (acme.ezycore.com, …) → the customer frontend.
+# Explicit hosts above always win over this wildcard. Cert via Cloudflare DNS-01
+# (needs CLOUDFLARE_API_TOKEN; see Dockerfile + docker-compose.yml).
+*.ezycore.com {
+    tls {
+        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+    }
+    reverse_proxy frontend-prod:3000
 }
 
 # ---------- STAGING ----------
@@ -39,5 +55,6 @@ rc-mc-api.ezycore.com {
     reverse_proxy mc-api-staging:6000
 }
 
-# NOTE: apex ezycore.com is not added yet — it has no DNS A record. Add a block
-# here (reverse_proxy frontend-prod:3000) once you point the apex at the server.
+# DNS records required for the blocks above (most-specific wins over the wildcard):
+#   @ (apex) → server IP      www → server IP      * (wildcard) → server IP
+# Apex/www certs use HTTP-01; the wildcard uses Cloudflare DNS-01 (token required).

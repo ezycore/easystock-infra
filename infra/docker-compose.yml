@@ -1,11 +1,15 @@
 services:
   caddy:
-    image: caddy:2
+    build: .                    # custom image: Caddy + Cloudflare DNS plugin (see Dockerfile)
     container_name: caddy
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
+    environment:
+      # DNS-01 challenge token for the *.ezycore.com wildcard cert. Lives in
+      # /opt/easystock/infra/.env on the server (gitignored) — see templates/infra.env.example.
+      - CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data        # stores HTTPS certificates (persisted)
