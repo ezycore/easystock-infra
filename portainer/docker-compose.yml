@@ -1,0 +1,39 @@
+# Portainer — admin-only ops UI (containers / images / volumes / networks / logs / stacks).
+#
+# Security model:
+#   • NO published host port → Portainer is never on the public IP; only Caddy
+#     (on the shared `edge` network) can reach it at portainer:9000.
+#   • Caddy locks the public hostname to your IP + Basic Auth + HTTPS
+#     (see infra/Caddyfile → portainer.ezycore.com block).
+#   • Portainer's own admin login is the final gate — set a 16+ char password on
+#     first launch (Portainer locks initial setup after a few minutes).
+#
+# ⚠️ The Docker socket below = root on the host. That is WHY access is IP-locked.
+#    Use Portainer for visibility/triage; do NOT import the CI-owned app stacks
+#    into it (that fights `docker compose up`).
+#
+# Deploy:  cd /opt/easystock/portainer && docker compose up -d
+services:
+  portainer:
+    image: portainer/portainer-ce:lts        # pin a specific 2.x release in production
+    container_name: portainer
+    restart: unless-stopped
+    command: -H unix:///var/run/docker.sock
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    networks: [edge]
+    # NOTE: intentionally NO `ports:` — reachable only via the edge network (Caddy).
+
+networks:
+  edge:
+    external: true     # shared with Caddy + the app stacks
+
+volumes:
+  portainer_data:
+
+# OPTIONAL HARDENING (defense in depth): front the socket with
+# tecnativa/docker-socket-proxy so Portainer can only call the API endpoints it
+# needs and mounts the real socket read-only. See SECRETS-AND-RECOVERY.md.
