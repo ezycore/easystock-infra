@@ -14,10 +14,6 @@
 }
 
 # ---------- PRODUCTION ----------
-# Apex + www → landing / signup / login (same frontend container as workspaces).
-ezycore.com, www.ezycore.com {
-    reverse_proxy frontend-prod:3000
-}
 app.ezycore.com {
     reverse_proxy frontend-prod:3000
 }
