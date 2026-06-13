@@ -3,7 +3,7 @@
 # Container names here MUST match the upstreams in infra/Caddyfile.
 services:
   backend-prod:
-    image: ghcr.io/sohoz360/easystock-backend:production
+    image: ghcr.io/ezycore/easystock-backend:production
     container_name: backend-prod
     restart: unless-stopped
     env_file: ./.env.backend
@@ -15,7 +15,7 @@ services:
       retries: 3
 
   mc-api-prod:
-    image: ghcr.io/sohoz360/mission-control:production
+    image: ghcr.io/ezycore/mission-control:production
     container_name: mc-api-prod
     restart: unless-stopped
     env_file: ./.env.mc-api
@@ -27,7 +27,7 @@ services:
       retries: 3
 
   frontend-prod:
-    image: ghcr.io/sohoz360/easystock-frontend:production
+    image: ghcr.io/ezycore/easystock-frontend:production
     container_name: frontend-prod
     restart: unless-stopped
     env_file: ./.env.frontend
@@ -39,7 +39,7 @@ services:
       retries: 3
 
   mc-admin-prod:
-    image: ghcr.io/sohoz360/mission-control-admin:production
+    image: ghcr.io/ezycore/mission-control-admin:production
     container_name: mc-admin-prod
     restart: unless-stopped
     env_file: ./.env.mc-admin

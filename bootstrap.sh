@@ -82,7 +82,7 @@ fi
 cat <<EOF
 
 Done. Next steps (as '${DEPLOY_USER}', after re-login so the docker group applies):
-  git clone https://github.com/Sohoz360/easystock-infra.git /opt/easystock
+  git clone https://github.com/ezycore/easystock-infra.git /opt/easystock
   # add the gitignored secrets the repo does NOT contain:
   #   /opt/easystock/infra/.env            (CLOUDFLARE_API_TOKEN)
   #   /opt/easystock/{staging,production}/.env.backend|.env.mc-api|.env.frontend|.env.mc-admin

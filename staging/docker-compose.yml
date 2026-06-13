@@ -2,7 +2,7 @@
 # *-staging container names (which match the staging upstreams in infra/Caddyfile).
 services:
   backend-staging:
-    image: ghcr.io/sohoz360/easystock-backend:staging
+    image: ghcr.io/ezycore/easystock-backend:staging
     container_name: backend-staging
     restart: unless-stopped
     env_file: ./.env.backend
@@ -14,7 +14,7 @@ services:
       retries: 3
 
   mc-api-staging:
-    image: ghcr.io/sohoz360/mission-control:staging
+    image: ghcr.io/ezycore/mission-control:staging
     container_name: mc-api-staging
     restart: unless-stopped
     env_file: ./.env.mc-api
@@ -26,7 +26,7 @@ services:
       retries: 3
 
   frontend-staging:
-    image: ghcr.io/sohoz360/easystock-frontend:staging
+    image: ghcr.io/ezycore/easystock-frontend:staging
     container_name: frontend-staging
     restart: unless-stopped
     env_file: ./.env.frontend
@@ -38,7 +38,7 @@ services:
       retries: 3
 
   mc-admin-staging:
-    image: ghcr.io/sohoz360/mission-control-admin:staging
+    image: ghcr.io/ezycore/mission-control-admin:staging
     container_name: mc-admin-staging
     restart: unless-stopped
     env_file: ./.env.mc-admin
