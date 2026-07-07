@@ -37,22 +37,16 @@ mc-api.ezycore.com {
     reverse_proxy mc-api-prod:6000
 }
 
-# Portainer — admin-only ops UI. NOT public: allowed IPs only (everyone else gets
-# 404), then Basic Auth, over HTTPS. Set the `portainer` DNS record to "DNS only"
-# (grey cloud) so remote_ip sees the REAL client IP. Generate the hash with:
+# Portainer — admin-only ops UI. NOT public: Basic Auth over HTTPS (no IP allowlist,
+# since admin has no fixed IP). Auth is the only gate — use a STRONG password.
+# Generate the hash with:
 #   docker run --rm caddy caddy hash-password --plaintext 'your-strong-pass'
 # (Caddy < 2.8 uses `basicauth` instead of `basic_auth`.)
 portainer.ezycore.com {
-    @allowed remote_ip 178.128.101.0/32          # ← replace with YOUR admin IP(s), space-separated
-    handle @allowed {
-        basic_auth {
-            admin $2a$14$goPzdzRpa8.sm5HMD4jKnu9.pwIiyTZpQz.tt1E6jMYJXdv8aN15q       # ← output of caddy hash-password
-        }
-        reverse_proxy portainer:9000
+    basic_auth {
+        admin $2a$14$goPzdzRpa8.sm5HMD4jKnu9.pwIiyTZpQz.tt1E6jMYJXdv8aN15q       # ← output of caddy hash-password
     }
-    handle {
-        respond 404
-    }
+    reverse_proxy portainer:9000
 }
 
 # Every workspace subdomain (acme.ezycore.com, …) → the customer frontend.
