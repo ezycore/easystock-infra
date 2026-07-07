@@ -11,6 +11,16 @@
 
 {
     email rashidul.karim7@gmail.com    # ACME account email (Let's Encrypt expiry notices). Change if you like.
+
+    # On-demand TLS for customer CUSTOM DOMAINS. Before issuing a cert for an
+    # unknown host, Caddy asks the backend whether that host is a verified/active
+    # custom domain — prevents strangers pointing DNS at us to force cert issuance
+    # (abuse / Let's-Encrypt rate limits). Secret-gated (DOMAIN_CHECK_SECRET must
+    # be set on THIS caddy container; Caddy appends &domain=). Custom domains are
+    # PRODUCTION only. See CUSTOM-DOMAINS-P1.md.
+    on_demand_tls {
+        ask http://backend-prod:5000/api/internal/domain-check?key={env.DOMAIN_CHECK_SECRET}
+    }
 }
 
 # ---------- PRODUCTION ----------
@@ -72,3 +82,20 @@ rc-mc-api.ezycore.com {
 # DNS records required for the blocks above (most-specific wins over the wildcard):
 #   @ (apex) → server IP      www → server IP      * (wildcard) → server IP
 # Apex/www certs use HTTP-01; the wildcard uses Cloudflare DNS-01 (token required).
+
+# ---------- CUSTOM DOMAINS (production only) ----------
+# Catch-all for customer custom domains (shop.acme.com, acme.com). Any host NOT
+# matched by an explicit/​wildcard block above falls here: Caddy issues a per-host
+# cert on demand via HTTP-01, gated by the global `on_demand_tls { ask ... }`
+# block (only verified/active domains get a cert). Serves the PRODUCTION frontend.
+#
+# Staging custom domains are NOT supported: one catch-all → one upstream. A
+# customer publishes either  CNAME → connect.ezycore.com  (subdomain) or
+# A → <server IP>  (apex), plus the _ezycore-verify TXT record. Explicit hosts
+# and *.ezycore.com always win over this block. See CUSTOM-DOMAINS-P1.md.
+https:// {
+    tls {
+        on_demand
+    }
+    reverse_proxy frontend-prod:3000
+}
