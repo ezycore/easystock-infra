@@ -7,6 +7,12 @@ Guidance for Claude Code (claude.ai/code) working in this repository.
 Infrastructure for the EasyStock ecosystem. This repo **mirrors `/opt/easystock/` on the server**, so
 the deploy flow is: edit locally → git push → (on server) git pull → `docker compose up -d`.
 
+> **Cross-repo master reference:** `mission-control/docs/EZYCORE_MASTER_REFERENCE.md` — the full
+> cross-product reference across all five repos, including this one. It cites this repo directly for
+> backup/env-template claims (Parts XII.3, the infra env audit). **Update it in the same PR** if you
+> add/remove a backup mechanism, change what's in `templates/*.env.example`, or otherwise change a
+> fact it documents about deploy/infra.
+
 ```
 infra/         # shared Caddy reverse proxy (HTTPS front door), Caddyfile + compose
 staging/       # staging app stack   (compose only; .env.* live on the server)
