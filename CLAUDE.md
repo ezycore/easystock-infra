@@ -88,3 +88,7 @@ grep -rhoE 'process\.env\.[A-Z0-9_]+' inventory-frontend --include='*.ts' --incl
   a server is rebuilt, and skipping it is what cost a day during the 2026-08-01 OVH migration
   (`mission-control/docs/deployment/SERVER-MIGRATION.md`).
 - Clock sync is load-bearing, not hygiene: MC↔backend HMAC rejects drift over 5 minutes.
+- **Never set `TZ` on a container or in an env template.** Every service runs in UTC on purpose; the
+  apps decide calendars themselves (organization timezone in the product, Asia/Dhaka in Mission
+  Control — see each repo's CLAUDE.md → Timezones). A `TZ=Asia/Dhaka` would silently move every cron,
+  and change how zone-less date-times parse and print in ways no test runs under (tests pin UTC).
