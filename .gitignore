@@ -11,3 +11,7 @@ dozzle/data/
 # OS / editor cruft
 .DS_Store
 *.swp
+
+# Caddy access logs — written on the server into infra/logs by the caddy container.
+# Real visitor IPs, user agents and request paths: never in git.
+infra/logs/
