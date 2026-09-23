@@ -23,17 +23,87 @@
     }
 }
 
+# ---------- ACCESS LOGS ----------
+# Caddy writes NO access log unless a site block asks for one. That is why the
+# 2026-09-23 Next.js server-action probe (crafted `Next-Action` headers hitting
+# app.ezycore.com and mc.ezycore.com) could not be traced to an IP: nothing on this
+# box had ever recorded a request. Every site block below now imports one of these.
+# Remove an import and that host goes dark again.
+#
+# JSON, one object per line, into a host bind mount (/opt/easystock/infra/logs on the
+# server, see docker-compose.yml) so rollups and ban lists can read it without going
+# into the container. Caddy does its own rolling and gzip — no logrotate needed.
+#
+# `client_ip` is the true visitor ONLY while the Cloudflare records stay "DNS only"
+# (grey cloud, DEPLOYMENT.md §6). Switch a record to the orange cloud and every request
+# on it reads as a Cloudflare IP until you add `trusted_proxies` + `client_ip_headers`
+# here — the log keeps working, it just starts lying.
+#
+# Cookie / Authorization / Proxy-Authorization are redacted by Caddy itself because the
+# global `log_credentials` option is off. Leave it off.
+#
+# These logs are SENSITIVE and the filter below is what keeps them merely sensitive
+# rather than a credential store: some public routes carry their secret in the URL, not
+# in a header. Redacted today:
+#   /t/<token>                        shopper order tracking (storefront page + the API
+#                                     route /api/storefront/<slug>/t/<token>) — the token
+#                                     IS the authentication, a replayed one opens the order
+#   /courier-webhooks/<provider>/<t>  per-store courier webhook token (URL-auth, pre-auth)
+#   /orders/track?...                 lookup by order number + PHONE — shopper PII
+# Add an alternative to the pattern for every new tokenized or PII-bearing URL.
+# One `regexp` per field is the Caddy limit, so all of them share this one pattern:
+# alternative 1 keeps its prefix in ${1}, alternative 2 keeps its in ${2}, and whichever
+# did not match contributes an empty string.
+(access_log_filter) {
+    format filter {
+        wrap json
+        fields {
+            request>uri regexp "(/t/|/courier-webhooks/[^/]+/)[^/?#]+|(/orders/track\?).*" "${1}${2}REDACTED"
+        }
+    }
+}
+
+# Production + custom domains. 30 days is the forensics window; it is also how far back
+# a visitor rollup can ever be rebuilt, so do not shorten it without saying so.
+(access_log) {
+    log {
+        output file /var/log/caddy/access.log {
+            roll_size 50MiB
+            roll_keep 20
+            roll_keep_for 720h
+        }
+        import access_log_filter
+    }
+}
+
+# Staging — same shape, kept in its own file and for one week, so staging noise never
+# pollutes a production rollup or an incident timeline.
+(access_log_staging) {
+    log {
+        output file /var/log/caddy/access-staging.log {
+            roll_size 20MiB
+            roll_keep 5
+            roll_keep_for 168h
+        }
+        import access_log_filter
+    }
+}
+
 # ---------- PRODUCTION ----------
 app.ezycore.com {
+    import access_log
     reverse_proxy frontend-prod:3000
 }
 api.ezycore.com {
+    import access_log
     reverse_proxy backend-prod:5000
 }
 mc.ezycore.com {
+    import access_log
     reverse_proxy mc-admin-prod:4000
 }
 mc-api.ezycore.com {
+    import access_log
     reverse_proxy mc-api-prod:6000
 }
 
@@ -45,6 +115,7 @@ mc-api.ezycore.com {
 #
 # Logs stream over SSE — do not add flush_interval/timeout directives here.
 dozzle.ezycore.com {
+    import access_log
     reverse_proxy dozzle:8080
 }
 
@@ -52,6 +123,7 @@ dozzle.ezycore.com {
 # Explicit hosts above always win over this wildcard. Cert via Cloudflare DNS-01
 # (needs CLOUDFLARE_API_TOKEN; see Dockerfile + docker-compose.yml).
 *.ezycore.com {
+    import access_log
     tls {
         dns cloudflare {env.CLOUDFLARE_API_TOKEN}
     }
@@ -60,15 +132,19 @@ dozzle.ezycore.com {
 
 # ---------- STAGING ----------
 rc.ezycore.com {
+    import access_log_staging
     reverse_proxy frontend-staging:3000
 }
 rc-api.ezycore.com {
+    import access_log_staging
     reverse_proxy backend-staging:5000
 }
 rc-mc.ezycore.com {
+    import access_log_staging
     reverse_proxy mc-admin-staging:4000
 }
 rc-mc-api.ezycore.com {
+    import access_log_staging
     reverse_proxy mc-api-staging:6000
 }
 
@@ -87,6 +163,7 @@ rc-mc-api.ezycore.com {
 # A → <server IP>  (apex), plus the _ezycore-verify TXT record. Explicit hosts
 # and *.ezycore.com always win over this block. See CUSTOM-DOMAINS-P1.md.
 https:// {
+    import access_log
     tls {
         on_demand
     }

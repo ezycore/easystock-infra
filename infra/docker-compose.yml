@@ -15,6 +15,12 @@ services:
       - DOMAIN_CHECK_SECRET=${DOMAIN_CHECK_SECRET}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Access logs. A BIND mount, not a named volume, on purpose: the rollup jobs and
+      # any `grep` during an incident run on the host, and a named volume would put the
+      # only copy of the request history behind `docker exec`. Caddy rolls and gzips the
+      # files itself (see the ACCESS LOGS section of the Caddyfile for retention).
+      # Created on first `up` if missing; root-owned, like the container that writes it.
+      - ./logs:/var/log/caddy
       - caddy_data:/data        # stores HTTPS certificates (persisted)
       - caddy_config:/config
     networks:
