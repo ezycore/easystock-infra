@@ -105,6 +105,30 @@ left no IP, no user agent, nothing. Assume any host you add is invisible until y
   must add it to that pattern in the same commit**, or its secret starts landing in plaintext.
   Caddy allows one `regexp` filter per field, so they share a single alternation.
 
+## Releasing (versions + changelog)
+
+Infra changes are released with their own version, like every EzyCore repo since **2026-10-03** (`inventory-backend` and
+`inventory-frontend` started at 1.0.0 that day). Each repo versions independently.
+**Not yet released under this scheme:** the next change applied to a server after 2026-10-03 is cut as **1.0.0**.
+
+- **There is no `package.json`: the version is the git tag plus the `CHANGELOG.md` heading.** A
+  template-only change (a new env var documented) is still a PATCH — it is what tells the operator
+  a server file needs editing.
+- **Semver:** PATCH = fixes only · MINOR = new features, nothing breaks · MAJOR = a
+  breaking change (a sibling repo must deploy in lockstep, a contract field removed,
+  a migration that must run first).
+- **`CHANGELOG.md` is kept as you go — every change, every session.** Each change adds
+  one line under `## [Unreleased]` → Added / Changed / Removed / Fixed, written for
+  whoever reads the deploy, not as a commit log. Migrations, new env vars and
+  cross-repo ordering ("needs inventory-backend ≥ 1.2.0") go under **Deploy notes**.
+  A change with no changelog line is unfinished — the same as a missing test or doc.
+- **Cutting a release** (the owner pushes and tags — never push or tag unasked):
+  1. Pick the bump from what is under Unreleased.
+  2. no version file to bump — the heading and the tag are the version; rename `[Unreleased]` to `[x.y.z] - YYYY-MM-DD` and open a fresh
+     empty `[Unreleased]` above it.
+  3. Commit `chore(release): vX.Y.Z`; merge to the deploy branch.
+  4. On the deployed commit: `git tag -a vX.Y.Z -m "vX.Y.Z"` and push the tag.
+
 ## Rules for changing this repo
 
 - **Container names in `{staging,production}/docker-compose.yml` MUST match the upstreams in
