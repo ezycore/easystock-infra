@@ -7,6 +7,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions:
 ## [Unreleased]
 
 ### Changed
+- `backend.env.example` documents `SIGNUP_ACCESS_KEY`: set it on production to
+  close self-signup to the team's `/signup?key=…` link (empty = open, as before).
 - `backend.env.example` documents `GIT_SHA` (baked into the image — do not set on the server).
 - `frontend.env.example` documents `NEXT_PUBLIC_GIT_SHA` (build arg) and
   `NEXT_PUBLIC_APP_VERSION` (filled from package.json at build).
