@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions:
 ## [Unreleased]
 
 ### Changed
+- `backend.env.example` documents the five `INBOX_FACEBOOK_*` vars for the inbox's "Connect with
+  Facebook" (switch off by default; keep it off in production until Meta's App Review), and
+  `META_GRAPH_API_VERSION` now covers every Meta call.
 - `backend.env.example` documents `RETENTION_INBOX_DAYS` (default 365): how long Messenger inbox
   chats are kept. `API_PUBLIC_URL` must be the public API origin — merchants paste the webhook URL
   built from it into Meta.
