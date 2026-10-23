@@ -34,7 +34,7 @@ filling the blanks. **A var missing here does not exist**, as far as the next op
 |---|---|---|
 | `backend.env.example` | `inventory-backend` → `/opt/easystock/{production,staging}/.env.backend` | runtime |
 | `mc-api.env.example` | `mission-control` (API) → `.env.mc-api` | runtime |
-| `frontend.env.example` | `inventory-frontend` → `.env.frontend` (`NODE_ENV` only) | **build** — `NEXT_PUBLIC_*` baked into the image |
+| `frontend.env.example` | `inventory-frontend` → `.env.frontend` (`NODE_ENV` + the `SSR_API_KEY` secret) | **build** — `NEXT_PUBLIC_*` baked into the image; `SSR_API_KEY` at runtime |
 | `mc-admin.env.example` | `mission-control/admin` → `.env.mc-admin` (`NODE_ENV` only) | **build** — same |
 | `infra.env.example` | Caddy → `/opt/easystock/infra/.env` | runtime (compose `${VAR}` substitution) |
 | `marketing.env.example` | `easystock-marketing` → Cloudflare Pages env vars (**no server, no container**) | build |
@@ -60,6 +60,7 @@ These are not per-service settings; a mismatch is a silent outage, so change the
 | Value | Must be identical in |
 |---|---|
 | `DOMAIN_CHECK_SECRET` | `infra.env.example` (Caddy) **and** `backend.env.example` (backend-prod) — the on-demand-TLS `ask` endpoint fails closed otherwise, and every custom domain stops issuing certs |
+| `SSR_API_KEY` | `frontend.env.example` **and** `backend.env.example` (same environment) — otherwise every shop render is counted against one per-IP rate-limit bucket again, and when it runs dry shops 404 and custom domains redirect shoppers to `/login` |
 | `ADMIN_DELETE_GRACE_MINUTES` | `backend.env.example` **and** MC's own value — otherwise the two disagree on the workspace-delete undo window |
 | `PORT` | The template **and** the container name/port in `infra/Caddyfile` (backend 5000, mc-api 6000, frontend 3000, mc-admin 4000). These are not free choices |
 | Marketing deploy hook | MC's `MARKETING_DEPLOY_HOOK_URL` ↔ the Cloudflare Pages hook for the marketing project |
