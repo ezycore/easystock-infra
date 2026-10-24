@@ -7,6 +7,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions:
 ## [Unreleased]
 
 ### Changed
+- `backend.env.example` documents the `INBOX_AI_*` vars for the inbox's AI replies (platform
+  switch off by default; keep it off in production until AI credit ships).
 - `backend.env.example` documents the five `INBOX_FACEBOOK_*` vars for the inbox's "Connect with
   Facebook" (switch off by default; keep it off in production until Meta's App Review), and
   `META_GRAPH_API_VERSION` now covers every Meta call.
