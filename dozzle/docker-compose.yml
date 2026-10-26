@@ -5,11 +5,14 @@
 # Security model:
 #   • Socket is mounted `:ro` — Dozzle can read logs and container metadata, and
 #     cannot start/stop/exec anything. (Portainer needed RW = root on the host.)
-#   • NO published host port → never on the public IP; only Caddy (on the shared
-#     `edge` network) can reach it at dozzle:8080.
-#   • Caddy terminates HTTPS and proxies straight through — NO Basic Auth layer.
-#     Dozzle's own `simple` auth provider is the ONLY gate, so the account in
-#     data/users.yml must have a strong password. See "First-time setup" below.
+#   • NO published host port → never on the public IP. Since 2026-10-26 the only
+#     way in is a Cloudflare Tunnel (`cloudflared` on the shared `edge` network →
+#     dozzle:8080) behind Cloudflare Access. Caddy no longer proxies it: its
+#     dozzle.ezycore.com block `abort`s, because proxying there let a request sent
+#     straight to the server IP skip Access (see infra/Caddyfile).
+#   • Two gates: Cloudflare Access first, then Dozzle's own `simple` auth provider.
+#     Keep the account in data/users.yml strong anyway — it is the last line if
+#     Access is ever misconfigured. See "First-time setup" below.
 #
 # ⚠️ Do NOT set DOZZLE_ENABLE_ACTIONS=true. The restart/stop buttons it unlocks
 #    need a read-write socket, which throws away the reason we moved off Portainer.
@@ -39,8 +42,8 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
-      # Dozzle owns its own login (bcrypt + session cookie). There is no second
-      # gate in front of it — see the security model above.
+      # Dozzle owns its own login (bcrypt + session cookie), behind Cloudflare
+      # Access — see the security model above.
       DOZZLE_AUTH_PROVIDER: simple
       # Session lifetime; re-login after this.
       DOZZLE_AUTH_TTL: 720h

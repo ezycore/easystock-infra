@@ -108,15 +108,18 @@ mc-api.ezycore.com {
 }
 
 # Dozzle — admin-only live log viewer (replaced Portainer 2026-08-04).
-# NO Basic Auth here on purpose: Dozzle runs DOZZLE_AUTH_PROVIDER=simple and owns
-# its own login (bcrypt + session cookie), so a second Basic Auth prompt would only
-# mean two passwords for one door. Its account lives in dozzle/data/users.yml on the
-# server — that password is the ONLY gate in front of a Docker socket, so keep it strong.
+# Since 2026-10-26 it is served ONLY through a Cloudflare Tunnel behind Cloudflare
+# Access: the `cloudflared` container on the `edge` network forwards
+# dozzle.ezycore.com straight to `dozzle:8080` and never passes through Caddy.
 #
-# Logs stream over SSE — do not add flush_interval/timeout directives here.
+# This block exists to REFUSE the name, not to serve it. Proxying here again would
+# reopen the bypass that was found live: a request sent straight to the server IP
+# with this Host header skipped Cloudflare Access and reached Dozzle's own login,
+# the only thing standing between the internet and the Docker socket. Deleting the
+# block is just as wrong — the *.ezycore.com wildcard below would then answer for it.
 dozzle.ezycore.com {
     import access_log
-    reverse_proxy dozzle:8080
+    abort
 }
 
 # Every workspace subdomain (acme.ezycore.com, …) → the customer frontend.

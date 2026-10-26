@@ -6,6 +6,21 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions:
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-26
+
+### Security
+- **Dozzle can no longer be reached around Cloudflare Access.** It is now served only through a
+  Cloudflare Tunnel behind Access, but Caddy still proxied `dozzle.ezycore.com`, so a request sent
+  straight to the server IP reached Dozzle's own login without passing Access. The Caddy block now
+  `abort`s (kept, not deleted, so the `*.ezycore.com` wildcard does not answer for the name).
+
+### Deploy notes
+- Copy `infra/Caddyfile` to `/opt/easystock/infra/`, validate it with the `infra-caddy` image, then
+  reload Caddy. Check afterwards: `curl --resolve dozzle.ezycore.com:443:<server IP>
+  https://dozzle.ezycore.com/` must fail to connect, and `https://dozzle.ezycore.com/` must still
+  show the Cloudflare Access login.
+- The `cloudflared` tunnel container was started by hand (`docker run`) and is not in this repo yet.
+
 ### Changed
 - `backend.env.example` documents the `INBOX_AI_*` vars for the inbox's AI replies (platform
   switch off by default; keep it off in production until AI credit ships).
