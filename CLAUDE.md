@@ -109,7 +109,7 @@ left no IP, no user agent, nothing. Assume any host you add is invisible until y
 
 Infra changes are released with their own version, like every EzyCore repo since **2026-10-03** (`inventory-backend` and
 `inventory-frontend` started at 1.0.0 that day). Each repo versions independently.
-**Not yet released under this scheme:** the next change applied to a server after 2026-10-03 is cut as **1.0.0**.
+**First release under this scheme: 1.0.0 (2026-10-26).**
 
 - **There is no `package.json`: the version is the git tag plus the `CHANGELOG.md` heading.** A
   template-only change (a new env var documented) is still a PATCH — it is what tells the operator
