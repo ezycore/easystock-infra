@@ -1,0 +1,21 @@
+# stats-web: serves the GoAccess report on :80 for the Cloudflare Tunnel.
+# Plain HTTP on purpose — TLS ends at Cloudflare, and this listener is only on the
+# `edge` network. See docker-compose.yml for the security model.
+{
+    admin off
+    auto_https off
+}
+
+:80 {
+    # The report's live updates: any websocket upgrade goes to GoAccess,
+    # whatever path the page asks for.
+    @ws {
+        header Connection *Upgrade*
+        header Upgrade websocket
+    }
+    reverse_proxy @ws goaccess:7890
+
+    root * /srv
+    header Cache-Control no-store
+    file_server
+}

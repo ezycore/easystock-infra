@@ -8,6 +8,11 @@
 # same rule as .env — generate it on the box, never commit it.
 dozzle/data/
 
+# GoAccess: counters + report (visitor IPs and paths) and the downloaded DB-IP
+# databases. Server-only, rebuilt by goaccess/update-geoip.sh and the live log.
+goaccess/data/
+goaccess/geo/
+
 # OS / editor cruft
 .DS_Store
 *.swp

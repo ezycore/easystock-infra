@@ -1,0 +1,91 @@
+# GoAccess — admin-only traffic dashboard built from Caddy's access log.
+# Added 2026-10-27: Dozzle shows raw container logs, but "who is hitting us, from
+# where, how many visitors, which store" meant asking for a jq session every time.
+#
+# What it shows: visitors per day, top IPs, per-host traffic (uriibaba.com,
+# api.ezycore.com, …), 404s and scanner probes, status codes, crawlers vs browsers,
+# country and network owner (ASN), referrers, busiest hours — live, over a websocket.
+#
+# What it does NOT show: the backend's own logs (orders, courier failures, app
+# errors). Those stay in Dozzle.
+#
+# Security model — same as Dozzle:
+#   • NO published host port. The only way in is the Cloudflare Tunnel
+#     (`cloudflared` on the `edge` network → stats-web:80) behind Cloudflare Access.
+#   • Caddy refuses stats.ezycore.com (see infra/Caddyfile), so a request sent
+#     straight to the server IP with that Host header cannot skip Access.
+#   • The report holds visitor IPs and request paths — personal data. Never expose
+#     it without Access in front, and never commit data/.
+#   • The log directory is mounted read-only.
+#
+# FIRST-TIME SETUP — run ON THE SERVER:
+#
+#   cd /opt/easystock/goaccess
+#   ./update-geoip.sh          # country + ASN databases into geo/ (gitignored)
+#   ./import-history.sh        # optional: load the rotated .gz logs once, before `up`
+#   docker compose up -d
+#
+# Then in Cloudflare Zero Trust: tunnel → Public hostname `stats.ezycore.com` →
+# service `http://stats-web:80`, and an Access application on that hostname with
+# the same policy as Dozzle.
+#
+# Data survives restarts: `--persist` dumps the counters to data/db on a clean stop
+# and `--restore` loads them back, resuming the log where it left off. A clean stop
+# matters — hence stop_grace_period. `--keep-last=30` matches Caddy's 30-day
+# retention, so the dashboard never claims history the logs no longer have.
+#
+# Deploy:  cd /opt/easystock/goaccess && docker compose up -d
+services:
+  goaccess:
+    image: allinurl/goaccess:1.12           # bump deliberately; `docker compose pull` after editing
+    container_name: goaccess
+    restart: unless-stopped
+    stop_grace_period: 60s
+    security_opt:
+      - no-new-privileges:true
+    command:
+      - /logs/access.log
+      - --log-format=CADDY
+      - --real-time-html
+      - --output=/data/html/index.html
+      - --html-report-title=EzyCore traffic
+      - --port=7890
+      - --ws-url=wss://stats.ezycore.com:443
+      - --origin=https://stats.ezycore.com
+      - --persist
+      - --restore
+      - --db-path=/data/db
+      - --keep-last=30
+      - --tz=Asia/Dhaka
+      - --geoip-database=/geo/country.mmdb
+      - --geoip-database=/geo/asn.mmdb
+      # The frontend's server-side calls reach api.ezycore.com from the Docker
+      # gateway (172.18.0.1) — ~2,000 per 3 hours on 2026-10-27, none a visitor.
+      - --exclude-ip=172.16.0.0-172.31.255.255
+      - --no-progress
+    volumes:
+      # The whole directory, read-only: Caddy renames access.log on rotation and
+      # GoAccess re-opens it by path (tested 2026-10-27).
+      - ../infra/logs:/logs:ro
+      - ./geo:/geo:ro
+      - ./data:/data
+    networks: [edge]
+
+  # GoAccess writes the report and serves the websocket, but does not serve HTML.
+  # This tiny Caddy serves index.html and hands websocket upgrades to GoAccess.
+  stats-web:
+    image: caddy:2.11.6-alpine
+    container_name: stats-web
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./data/html:/srv:ro
+    networks: [edge]
+    depends_on: [goaccess]
+    # NOTE: intentionally NO `ports:` — reachable only via the tunnel.
+
+networks:
+  edge:
+    external: true     # shared with Caddy, cloudflared and the app stacks

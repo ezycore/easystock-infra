@@ -18,6 +18,7 @@ infra/         # shared Caddy reverse proxy (HTTPS front door), Caddyfile + comp
 staging/       # staging app stack   (compose only; .env.* live on the server)
 production/    # production app stack (compose only; .env.* live on the server)
 dozzle/        # live container log viewer (read-only socket; replaced Portainer)
+goaccess/      # traffic dashboard from Caddy's access log (stats.ezycore.com, tunnel + Access)
 templates/     # ⭐ the env registry — see below
 bootstrap.sh   # provision a blank Ubuntu 24.04 VPS (idempotent)
 ```
@@ -104,6 +105,9 @@ left no IP, no user agent, nothing. Assume any host you add is invisible until y
   and the phone number in `/orders/track?…`. **Ship a new tokenized or PII-bearing public URL and you
   must add it to that pattern in the same commit**, or its secret starts landing in plaintext.
   Caddy allows one `regexp` filter per field, so they share a single alternation.
+- **Dashboard:** `goaccess/` turns `access.log` into a live report at `stats.ezycore.com` (tunnel +
+  Access, like Dozzle). It reads the log by path, so a change to the log location or format
+  (`--log-format=CADDY` expects Caddy's JSON) must change `goaccess/docker-compose.yml` too.
 
 ## Releasing (versions + changelog)
 

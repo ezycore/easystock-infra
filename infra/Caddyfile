@@ -134,6 +134,15 @@ dozzle.ezycore.com {
     abort
 }
 
+# GoAccess traffic dashboard (added 2026-10-27) — same arrangement as Dozzle: served
+# ONLY through the Cloudflare Tunnel (cloudflared → stats-web:80) behind Access, see
+# goaccess/docker-compose.yml. Refused here so the wildcard below cannot answer for it
+# and a request straight to the server IP cannot skip Access. The page lists visitor IPs.
+stats.ezycore.com {
+    import access_log
+    abort
+}
+
 # Every workspace subdomain (acme.ezycore.com, …) → the customer frontend.
 # Explicit hosts above always win over this wildcard. Cert via Cloudflare DNS-01
 # (needs CLOUDFLARE_API_TOKEN; see Dockerfile + docker-compose.yml).
