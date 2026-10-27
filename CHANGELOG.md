@@ -6,6 +6,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions:
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-27
+
 ### Security
 - **Caddy drops requests carrying `X-Middleware-Subrequest`**, a Next.js-internal header that only exploit scanners send (the middleware-bypass attack, CVE-2025-29927 — our Next is already patched). Applied to every frontend block: `app.`, the `*.ezycore.com` wildcard, `rc.` and custom domains. About 10,600 such probes arrived from one host in two hours on 2026-10-27; each now ends at Caddy instead of rendering a page.
 - **`smsmv.com` is refused.** It is not our domain, but its DNS (behind Cloudflare) still points at this server, so its traffic, mostly exploit scanners, landed on Caddy's HTTP→HTTPS redirect. Plain-HTTP requests for `smsmv.com` and `*.smsmv.com` are now aborted. The block is HTTP-only so Caddy never tries to get a certificate for a domain we don't control. Checked on a throwaway Caddy: `app.`, workspace subdomains and `uriibaba.com` still redirect to HTTPS, and the certificate-challenge path answers the same as live.
