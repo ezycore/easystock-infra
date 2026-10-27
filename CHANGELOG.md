@@ -6,6 +6,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions:
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-10-27
+
 ### Added
 - **Traffic dashboard at `stats.ezycore.com`** (`goaccess/`). GoAccess reads Caddy's production access log and shows, live: visitors per day, top IPs, traffic per host (each store's domain, the API), 404s and scanner probes, status codes, crawlers vs browsers, country and network owner, referrers and busiest hours (Dhaka time). The frontend's internal calls to the API (Docker gateway) are left out so visitor counts are real. It keeps 30 days, like the logs, and survives restarts. Reached only through the Cloudflare Tunnel behind Access, like Dozzle; Caddy refuses the name so the server IP cannot be used to skip Access.
 
