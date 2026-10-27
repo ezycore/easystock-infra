@@ -89,9 +89,21 @@
     }
 }
 
+# Drop requests carrying a header only an attacker sends. `X-Middleware-Subrequest`
+# is Next.js-internal: the middleware-auth bypass (CVE-2025-29927) works by sending
+# it from outside. We run a patched Next, so this is not the fix — it stops the
+# scanner traffic at the edge instead of spending a frontend render on each probe.
+# One GCP host sent ~10,600 of them in two hours on 2026-10-27. No browser or
+# legitimate client ever sets it. Imported by every block that serves the frontend.
+(block_exploit_headers) {
+    @exploit_headers header X-Middleware-Subrequest *
+    abort @exploit_headers
+}
+
 # ---------- PRODUCTION ----------
 app.ezycore.com {
     import access_log
+    import block_exploit_headers
     reverse_proxy frontend-prod:3000
 }
 api.ezycore.com {
@@ -127,6 +139,7 @@ dozzle.ezycore.com {
 # (needs CLOUDFLARE_API_TOKEN; see Dockerfile + docker-compose.yml).
 *.ezycore.com {
     import access_log
+    import block_exploit_headers
     tls {
         dns cloudflare {env.CLOUDFLARE_API_TOKEN}
     }
@@ -136,6 +149,7 @@ dozzle.ezycore.com {
 # ---------- STAGING ----------
 rc.ezycore.com {
     import access_log_staging
+    import block_exploit_headers
     reverse_proxy frontend-staging:3000
 }
 rc-api.ezycore.com {
@@ -155,6 +169,18 @@ rc-mc-api.ezycore.com {
 #   @ (apex) → server IP      www → server IP      * (wildcard) → server IP
 # Apex/www certs use HTTP-01; the wildcard uses Cloudflare DNS-01 (token required).
 
+# ---------- FOREIGN DOMAINS ----------
+# smsmv.com is not ours: its DNS (behind Cloudflare) still points at this server.
+# Cloudflare reaches us over plain HTTP, so the requests landed on Caddy's automatic
+# HTTP→HTTPS redirect, about 3,300 in a few days, mostly exploit scanners. HTTP-only
+# on purpose: an HTTPS block would make Caddy try to get a certificate for a domain
+# we do not control. HTTPS already fails at the TLS handshake, because the
+# on-demand `ask` refuses it.
+http://smsmv.com, http://*.smsmv.com {
+    import access_log
+    abort
+}
+
 # ---------- CUSTOM DOMAINS (production only) ----------
 # Catch-all for customer custom domains (shop.acme.com, acme.com). Any host NOT
 # matched by an explicit/​wildcard block above falls here: Caddy issues a per-host
@@ -167,6 +193,7 @@ rc-mc-api.ezycore.com {
 # and *.ezycore.com always win over this block. See CUSTOM-DOMAINS-P1.md.
 https:// {
     import access_log
+    import block_exploit_headers
     tls {
         on_demand
     }
