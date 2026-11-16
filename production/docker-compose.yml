@@ -8,6 +8,16 @@ services:
     restart: unless-stopped
     env_file: ./.env.backend
     networks: [edge]
+    # Logs outlive the container. The default json-file log (3 × 10 MB) is deleted every time a
+    # deploy recreates the container, so a webhook Meta did not deliver, or an AI turn that failed,
+    # could not be looked into after the next deploy (architecture review 2026-11-16, fix 5).
+    # journald keeps them on the host's persistent journal (/var/log/journal, its own size limits);
+    # Docker's dual logging still serves `docker logs` and Dozzle from a local cache.
+    #   journalctl CONTAINER_TAG=backend-prod --since "2026-11-16 10:00" -o cat
+    logging:
+      driver: journald
+      options:
+        tag: backend-prod
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:5000/health',r=>process.exit(r.statusCode>=200&&r.statusCode<300?0:1)).on('error',()=>process.exit(1))"]
       interval: 30s

@@ -65,11 +65,18 @@
 
 # Production + custom domains. 30 days is the forensics window; it is also how far back
 # a visitor rollup can ever be rebuilt, so do not shorten it without saying so.
+#
+# `roll_keep` is a FILE COUNT and whichever limit is hit first wins. At 20 it held about
+# TWO days, not 30: storefront + scanner traffic fills 50 MiB every 1.5–2 h (≈ 13 files a
+# day, ~3.7 MB each gzipped). Found 2026-11-16 when two Messenger webhooks Meta never
+# delivered (13–14 Nov) could not be looked up — their log had already been deleted.
+# 450 files ≈ 34 days at that rate ≈ 1.7 GB, so `roll_keep_for` is the limit again.
+# Recheck the rate if traffic grows (`ls infra/logs | wc -l` vs the oldest file's date).
 (access_log) {
     log {
         output file /var/log/caddy/access.log {
             roll_size 50MiB
-            roll_keep 20
+            roll_keep 450
             roll_keep_for 720h
         }
         import access_log_filter

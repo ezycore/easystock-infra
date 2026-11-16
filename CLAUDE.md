@@ -95,7 +95,9 @@ left no IP, no user agent, nothing. Assume any host you add is invisible until y
   jq -r 'select(.request.headers["Next-Action"]) | [.ts, .request.client_ip, .request.uri] | @tsv' access.log
   ```
 - **Retention:** Caddy rolls and gzips by itself — 30 days production, 7 days staging. No logrotate.
-  Thirty days is also the furthest back any visitor rollup could ever be rebuilt.
+  Thirty days is also the furthest back any visitor rollup could ever be rebuilt. **`roll_keep` is a
+  file count and the first limit hit wins**: at 20 it held only ~2 days of production (a 50 MiB file
+  fills every 1.5–2 h), until 2026-11-16. Check the oldest file's date after any traffic jump.
 - **Real client IPs depend on DNS staying "DNS only"** (grey cloud, DEPLOYMENT.md §6). Flip a record
   to the orange cloud and `client_ip` becomes a Cloudflare IP — the log keeps working, it just starts
   lying — until you add `trusted_proxies` + `client_ip_headers` to the snippet.
