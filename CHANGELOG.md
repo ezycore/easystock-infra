@@ -9,10 +9,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions:
 ### Fixed
 - **The production access log really keeps 30 days.** `roll_keep 20` (a file count) beat `roll_keep_for 720h`: storefront and scanner traffic fills a 50 MiB file every 1.5–2 h, so only about two days were kept. Found when two Messenger webhooks Meta never delivered (13–14 Nov) could not be looked up. Now `roll_keep 450` (≈ 34 days at today's rate, ≈ 1.7 GB of the 54 GB free), so the 30-day limit applies again. GoAccess's dashboard gains the same history.
 
+### Added
+- **The production backend runs as two containers from one image** (branch `feat/backend-worker`): `backend-prod` (`APP_ROLE=api`) serves the API and the Messenger webhooks with no scheduled job, and the new `backend-worker-prod` (`APP_ROLE=worker`) runs every scheduled job — the AI reply worker, missed-message recovery, notifications, digests — and answers only `/health`. A deploy, a crash or a heavy AI photo turn in one no longer takes the other with it. Both log to journald. `templates/backend.env.example` documents `APP_ROLE` (set per container in compose, never in the env file) and `INBOX_AI_CONCURRENCY`.
+
 ### Changed
 - **Production backend logs survive a deploy.** `backend-prod` logs to the host's journal (`logging: driver: journald`, tag `backend-prod`) instead of Docker's json-file, which kept only 30 MB and lost everything each time a deploy recreated the container. `docker logs` and Dozzle still work (Docker's dual logging). Read old logs with `journalctl CONTAINER_TAG=backend-prod --since … -o cat`.
 
 ### Deploy notes
+- **Backend worker — ORDER MATTERS.** Deploy inventory-backend ≥ 1.29.0 to production FIRST and check `/health` reports it. Only then `git pull` this branch and `cd /opt/easystock/production && docker compose up -d`. An older backend image ignores `APP_ROLE`, so both containers would start every job and every digest, reminder and SMS would go out twice. Check afterwards: `docker logs backend-prod | grep '"role"'` → `api`, `docker logs backend-worker-prod | grep '"role"'` → `worker`, and only the worker logs `inbox.ai worker started`. To undo: remove the `backend-worker-prod` service and the `APP_ROLE` line, `docker compose up -d --remove-orphans` — the backend falls back to `all`.
 - Backend logs: after `git pull`, `cd /opt/easystock/production && docker compose up -d backend-prod` recreates the container with the new driver (a few seconds of downtime — do it with the next backend deploy). Check: `docker inspect backend-prod --format '{{.HostConfig.LogConfig.Type}}'` → `journald`.
 - On the server: `cd /opt/easystock && git pull && docker exec caddy caddy reload --config /etc/caddy/Caddyfile` (or `docker compose -f infra/docker-compose.yml restart caddy`). No downtime with `reload`. Files already deleted do not come back; the 30 days build up from now.
 
