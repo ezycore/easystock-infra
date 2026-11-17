@@ -11,6 +11,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions:
 
 ### Added
 - `templates/backend.env.example`: `INBOX_AI_CHAT_HOURLY_REPLY_CAP` (optional, empty = 15) — the backend's per-chat hourly AI reply cap.
+- `templates/backend.env.example`: `INBOX_IMAGE_MODEL_PATH` (optional) — where the backend's photo-shortlist model lives; the backend image bakes it in, so leave it empty.
 - **The production backend runs as two containers from one image** (branch `feat/backend-worker`): `backend-prod` (`APP_ROLE=api`) serves the API and the Messenger webhooks with no scheduled job, and the new `backend-worker-prod` (`APP_ROLE=worker`) runs every scheduled job — the AI reply worker, missed-message recovery, notifications, digests — and answers only `/health`. A deploy, a crash or a heavy AI photo turn in one no longer takes the other with it. Both log to journald. `templates/backend.env.example` documents `APP_ROLE` (set per container in compose, never in the env file) and `INBOX_AI_CONCURRENCY`.
 
 ### Changed
