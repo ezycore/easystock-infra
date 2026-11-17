@@ -2,12 +2,50 @@
 # joins the shared `edge` network so Caddy (infra/) can route to each container.
 # Container names here MUST match the upstreams in infra/Caddyfile.
 services:
+  # The API half: HTTP and the Messenger webhooks, no scheduled job (APP_ROLE, backend ≥ 1.29.0).
   backend-prod:
     image: ghcr.io/ezycore/easystock-backend:production
     container_name: backend-prod
     restart: unless-stopped
     env_file: ./.env.backend
+    environment:
+      APP_ROLE: api
     networks: [edge]
+    # Logs outlive the container. The default json-file log (3 × 10 MB) is deleted every time a
+    # deploy recreates the container, so a webhook Meta did not deliver, or an AI turn that failed,
+    # could not be looked into after the next deploy (architecture review 2026-11-16, fix 5).
+    # journald keeps them on the host's persistent journal (/var/log/journal, its own size limits);
+    # Docker's dual logging still serves `docker logs` and Dozzle from a local cache.
+    #   journalctl CONTAINER_TAG=backend-prod --since "2026-11-16 10:00" -o cat
+    logging:
+      driver: journald
+      options:
+        tag: backend-prod
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5000/health',r=>process.exit(r.statusCode>=200&&r.statusCode<300?0:1)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # The worker half of the SAME image: every scheduled job (AI replies, missed-message recovery,
+  # notifications, digests…), no API — so a deploy, a crash or a heavy AI photo turn here never
+  # stops the webhooks, and the reverse (architecture review 2026-11-16, fix 6). Not in the
+  # Caddyfile: nothing routes to it. `docker compose up -d` in the deploy recreates both on every
+  # backend release. NEVER run two containers that start jobs (worker or all) — every digest,
+  # reminder and SMS would go out twice.
+  backend-worker-prod:
+    image: ghcr.io/ezycore/easystock-backend:production
+    container_name: backend-worker-prod
+    restart: unless-stopped
+    env_file: ./.env.backend
+    environment:
+      APP_ROLE: worker
+    # The edge network for the same egress as the API (Mission Control, Meta, OpenAI).
+    networks: [edge]
+    logging:
+      driver: journald
+      options:
+        tag: backend-worker-prod
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:5000/health',r=>process.exit(r.statusCode>=200&&r.statusCode<300?0:1)).on('error',()=>process.exit(1))"]
       interval: 30s
