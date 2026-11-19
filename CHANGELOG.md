@@ -7,6 +7,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions:
 ## [Unreleased]
 
 ### Fixed
+- **`backups/` is gitignored.** It holds full database dumps and the R2 backup token (`backups/r2.env`), and neither `.env` rule covered it, so a `git add -A` on the server would have committed both.
 - **The production access log really keeps 30 days.** `roll_keep 20` (a file count) beat `roll_keep_for 720h`: storefront and scanner traffic fills a 50 MiB file every 1.5–2 h, so only about two days were kept. Found when two Messenger webhooks Meta never delivered (13–14 Nov) could not be looked up. Now `roll_keep 450` (≈ 34 days at today's rate, ≈ 1.7 GB of the 54 GB free), so the 30-day limit applies again. GoAccess's dashboard gains the same history.
 
 ### Added
