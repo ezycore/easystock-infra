@@ -103,8 +103,26 @@
 # One GCP host sent ~10,600 of them in two hours on 2026-10-27. No browser or
 # legitimate client ever sets it. Imported by every block that serves the frontend.
 (block_exploit_headers) {
+    import block_scanner_paths
     @exploit_headers header X-Middleware-Subrequest *
     abort @exploit_headers
+}
+
+# Drop vulnerability-scanner probes before they reach an app. On 2026-11-18 about 4,600
+# requests a day asked for /.env, /.git/config, /wp-login.php, /phpinfo.php and similar.
+# Nothing ever answered them (Next or Express 404s), but each one still cost a render or
+# a route lookup. None of these paths exists in any EzyCore app.
+#
+# NOT listed on purpose: /wp-content/ and /wp-json/. UriiBaba moved from WordPress, and
+# real shoppers still follow old image and product links there (redirects handle some).
+#
+# The pattern has a twin in fail2ban/filter.d/caddy-scanner.conf, which bans an IP that
+# keeps asking. Change both together. The path is matched without the query string, so
+# /login?callbackUrl=/actuator/... still reaches the login page.
+# Imported by block_exploit_headers (every frontend block) and directly by the API blocks.
+(block_scanner_paths) {
+    @scanner_paths path_regexp scanner (?i)(/\.(env|git|aws|svn|hg|ds_store|htpasswd)|/wp-(login|admin|config)|/xmlrpc\.php|/(php)?info\.php|/phpmyadmin|/actuator(/|$)|/cgi-bin/)
+    abort @scanner_paths
 }
 
 # ---------- PRODUCTION ----------
@@ -115,14 +133,17 @@ app.ezycore.com {
 }
 api.ezycore.com {
     import access_log
+    import block_scanner_paths
     reverse_proxy backend-prod:5000
 }
 mc.ezycore.com {
     import access_log
+    import block_scanner_paths
     reverse_proxy mc-admin-prod:4000
 }
 mc-api.ezycore.com {
     import access_log
+    import block_scanner_paths
     reverse_proxy mc-api-prod:6000
 }
 
@@ -170,14 +191,17 @@ rc.ezycore.com {
 }
 rc-api.ezycore.com {
     import access_log_staging
+    import block_scanner_paths
     reverse_proxy backend-staging:5000
 }
 rc-mc.ezycore.com {
     import access_log_staging
+    import block_scanner_paths
     reverse_proxy mc-admin-staging:4000
 }
 rc-mc-api.ezycore.com {
     import access_log_staging
+    import block_scanner_paths
     reverse_proxy mc-api-staging:6000
 }
 

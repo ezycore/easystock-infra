@@ -12,7 +12,7 @@
 #
 # What it does:
 #   1. Non-root sudo user ("deploy") + copy root's SSH key
-#   2. Firewall (ufw): SSH + HTTP + HTTPS only
+#   2. Firewall (ufw): SSH + HTTP + HTTPS only, plus fail2ban
 #   3. Time sync (NTP)  — CRITICAL: MC<->Backend HMAC rejects clock drift > 5 min
 #   4. Docker Engine + compose plugin; "deploy" runs docker without sudo
 #   5. Global container log rotation (so disks don't fill)
@@ -51,7 +51,23 @@ apt-get install -y ufw curl ca-certificates
 ufw allow OpenSSH
 ufw allow 80/tcp
 ufw allow 443/tcp
+ufw allow 443/udp   # HTTP/3 — Caddy publishes it
+ufw default deny incoming
 ufw --force enable
+
+# fail2ban: bans SSH guessers and the scanners Caddy already blocks (the why
+# is in fail2ban/jail.d/ezycore.local). The caddy-scanner jail reads Caddy's access log, which does
+# not exist until Caddy has run once, so on a blank box this only installs the package.
+# Re-run bootstrap after Caddy is up, or copy the two files by hand (see CHANGELOG 2026-11-19).
+apt-get install -y fail2ban
+F2B_SRC="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd)/fail2ban"
+if [ -d "${F2B_SRC}" ] && [ -f /opt/easystock/infra/logs/access.log ]; then
+  install -m 644 "${F2B_SRC}/filter.d/caddy-scanner.conf" /etc/fail2ban/filter.d/
+  install -m 644 "${F2B_SRC}/jail.d/ezycore.local" /etc/fail2ban/jail.d/
+  fail2ban-client -t && systemctl enable --now fail2ban && systemctl restart fail2ban
+else
+  echo "NOTE: fail2ban jails NOT installed yet (no repo copy next to this script, or Caddy has not logged yet)." >&2
+fi
 
 log "3/7  Time sync (NTP) — HMAC needs clocks within 5 minutes"
 timedatectl set-ntp true 2>/dev/null || systemctl enable --now systemd-timesyncd || true
