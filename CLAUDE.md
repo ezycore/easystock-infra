@@ -98,9 +98,11 @@ left no IP, no user agent, nothing. Assume any host you add is invisible until y
   Thirty days is also the furthest back any visitor rollup could ever be rebuilt. **`roll_keep` is a
   file count and the first limit hit wins**: at 20 it held only ~2 days of production (a 50 MiB file
   fills every 1.5–2 h), until 2026-11-16. Check the oldest file's date after any traffic jump.
-- **Real client IPs depend on DNS staying "DNS only"** (grey cloud, DEPLOYMENT.md §6). Flip a record
-  to the orange cloud and `client_ip` becomes a Cloudflare IP — the log keeps working, it just starts
-  lying — until you add `trusted_proxies` + `client_ip_headers` to the snippet.
+- **Real client IPs behind Cloudflare come from `CF-Connecting-IP`** (global `servers` block in the
+  Caddyfile, since 2026-11-19). It is trusted only from Cloudflare's ranges, the same list as
+  `ignoreip` in `fail2ban/jail.d/ezycore.local`. Change both together, and re-check
+  https://www.cloudflare.com/ips/ now and then. A Cloudflare range missing from the list makes
+  `client_ip` a Cloudflare address again.
 - **These files are sensitive and `infra/logs/` is gitignored.** Credentials in *headers* are redacted
   by Caddy (`log_credentials` is off — leave it off). Credentials in the *URL* are not, so the snippet
   carries an explicit redaction pattern for `/t/<token>` (order tracking), the courier webhook token
