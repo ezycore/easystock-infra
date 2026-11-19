@@ -1,0 +1,6 @@
+# Nightly production DB backup → R2 (backup/db-backup.sh). Install:
+#   sudo install -m 644 /opt/easystock/backup/ezycore-db-backup.cron /etc/cron.d/ezycore-db-backup
+# The server clock is UTC (never set TZ, see CLAUDE.md): 21:00 UTC = 03:00 Dhaka, the quietest hour.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+0 21 * * * root /opt/easystock/backup/db-backup.sh >/dev/null 2>&1

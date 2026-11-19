@@ -109,6 +109,10 @@ Done. Next steps (as '${DEPLOY_USER}', after re-login so the docker group applie
   #   /opt/easystock/infra/.env            (CLOUDFLARE_API_TOKEN)
   #   /opt/easystock/{staging,production}/.env.backend|.env.mc-api|.env.frontend|.env.mc-admin
   mkdir -p /opt/easystock/backups
+  # Nightly DB backup to R2 — the ONLY backup (Atlas M0 has none). See backup/README.md:
+  #   create /opt/easystock/backups/r2.env (root, 600), then
+  sudo install -m 644 /opt/easystock/backup/ezycore-db-backup.cron /etc/cron.d/ezycore-db-backup
+  sudo /opt/easystock/backup/db-backup.sh    # first run by hand; Telegram says ✅ or ❌
   cd /opt/easystock/infra && docker compose up -d --build   # Caddy (custom image w/ Cloudflare DNS)
   cd /opt/easystock/production && docker compose pull && docker compose up -d
 See DEPLOYMENT-RUNBOOK.md for the full order + the gotchas.
