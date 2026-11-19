@@ -20,3 +20,8 @@ goaccess/geo/
 # Caddy access logs — written on the server into infra/logs by the caddy container.
 # Real visitor IPs, user agents and request paths: never in git.
 infra/logs/
+
+# Database dumps (full customer data) and the R2 backup token (backups/r2.env). Written on the
+# server by backup/db-backup.sh and by hand-made dumps. Never in git. Note: backups/ is the
+# DATA folder; backup/ (singular) is the tracked script folder.
+backups/
