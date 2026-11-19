@@ -235,11 +235,13 @@ http://smsmv.com, http://*.smsmv.com {
 }
 
 # ---------- CLOUDFLARE FOR SAAS TEST (temporary, remove after the 2026-11 migration) ----------
-# Spare domain ezycore.app (no store on it) proves the new path before any real store moves:
+# Spare domain ezycore.app (no store on it) proves the new path before any real store moves.
+# The root ezycore.app is the case Cloudflare does not support with an A record on the Free plan:
+# it is a CNAME to shops.ezycore.com, flattened by its own Cloudflare zone, like the stores will be.
 # customer CNAME → shops.ezycore.com (proxied) → fallback origin saas-origin.ezycore.com → here.
 # It answers with what Caddy sees, so one curl shows the host, the visitor IP Caddy settled on,
 # and that its own Let's Encrypt cert (HTTP-01 through Cloudflare) was issued. Touches no app.
-saas-test.ezycore.app {
+saas-test.ezycore.app, ezycore.app {
     import access_log
     header Cache-Control "no-store"
     respond "ezycore saas test: host={host} client_ip={client_ip} remote={remote_host} via_cf={header.CF-Ray}
